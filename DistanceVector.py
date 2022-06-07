@@ -35,6 +35,8 @@ class DistanceVector(Node):
 
         for link in self.outgoing_links:
             self.distances[link.name] = int(link.weight)
+        
+        self.INFINITE_WEIGHT = -99
 
     def send_initial_messages(self):
         """ This is run once at the beginning of the simulation, after all
@@ -62,20 +64,17 @@ class DistanceVector(Node):
             msgOrigin = msg['origin']
             msgDistances = msg['distances']
             for key, value in msgDistances.items():
-                if key != self.name and key not in self.outgoing_links:
-                    # if path to sender + path to destination < current path to destination
+                if key != self.name:
+                    updatedWeight = value + int(self.get_outgoing_neighbor_weight(msgOrigin))
                     if key not in self.distances.keys():
                         madeChange = True
-                        self.distances[key] = value + self.distances[msgOrigin]
-                    elif value == -99 and self.distances[key] != -99:
+                        self.distances[key] = updatedWeight
+                    elif value == self.INFINITE_WEIGHT and self.distances[key] != self.INFINITE_WEIGHT:
                         madeChange = True
-                        self.distances[key] = -99
-                    elif self.distances[key] > (value + self.distances[msgOrigin]):
+                        self.distances[key] = self.INFINITE_WEIGHT
+                    elif self.distances[key] > updatedWeight:
                         madeChange = True
-                        newValue = value + self.distances[msgOrigin]
-                        if newValue < -99:
-                            newValue = -99
-                        self.distances[key] = newValue
+                        self.distances[key] = updatedWeight if updatedWeight > self.INFINITE_WEIGHT else self.INFINITE_WEIGHT
         
         # Empty queue
         self.messages = []
